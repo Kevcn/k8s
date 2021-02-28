@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-express
+  labels:
+    app: mongo-express
+spec: # pod config
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo-express
+  template: # docker image config
+    metadata:
+      labels:
+        app: mongo-express # pod label
+    spec:
+      containers:
+      - name: mongo-express
+        image: mongo-express
+        ports:
+        - containerPort: 8081
+        env:
+        - name: ME_CONFIG_MONGODB_AUTH_USERNAME
+          valueFrom:
+            secretKeyRef: 
+              name: mongodb-secret
+              key: mongo_root_username
+        - name: ME_CONFIG_MONGODB_AUTH_PASSWORD
+          valueFrom:
+            secretKeyRef: 
+              name: mongodb-secret
+              key: mongo_root_password
+        - name: ME_CONFIG_MONGODB_SERVER
+          valueFrom:
+            configMapKeyRef: 
+              name: mongodb-configmap
+              key: database_url
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-express-service # this can be anything
+spec:
+  selector:
+    app: mongo-express # this service is connected to pods with the same label
+  type: LoadBalancer # indicates this service is external facing
+  ports:
+    - protocol: TCP
+      port: 8081 # incoming port
+      targetPort: 8081 # port of which the attached container pod is running on
+      nodePort: 30000 # this is the cluster external port, must be between 30000 - 32767
+
+
